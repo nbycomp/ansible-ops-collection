@@ -1,0 +1,10 @@
+---
+- name: Converge
+  hosts: all
+  become: yes
+  tasks:
+    - name: Include nbycomp.ops.rocky_base_rke
+      include_role:
+        name: "rocky_base_rke"
+      vars:
+        rocky_base_rke_hostname: "molecule-test"

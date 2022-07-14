@@ -1,0 +1,140 @@
+---
+# tasks file for common
+- name: Assert that needed variables are defined
+  ansible.builtin.assert:
+    that:
+      - rocky_base_rke_hostname | length > 0
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ rocky_base_rke_hostname }}"
+    use: systemd
+
+- name: Add hostname to /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: 127.0.0.1 {{ rocky_base_rke_hostname }}
+    insertbefore: BOF
+
+- name: Ensure cloud-init is removed
+  ansible.builtin.package:
+    name: cloud-init
+    state: absent
+
+- name: Include tasks to setup centos
+  ansible.builtin.include_tasks: centos/main.yml
+
+- name: Include tasks to install common packages
+  ansible.builtin.include_tasks: packages.yml
+
+- name: Install required CentOS docker packages
+  ansible.builtin.package:
+    name:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: present
+
+- name: Add Docker repo
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+
+- name: Install docker 20.10.12
+  ansible.builtin.yum:
+    name:
+      - docker-ce-20.10.12
+      - docker-ce-cli-20.10.12
+    state: present
+    allow_downgrade: yes
+
+- name: Ensure /etc/docker directory exists
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+
+- name: Copy docker daemon.json config file
+  ansible.builtin.template:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+
+- name: Start and enable Docker service
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Set default python to 3.9
+  community.general.alternatives:
+    name: "{{ item }}"
+    path: "/usr/bin/python3.9"
+  with_items:
+    - "python"
+    - "python3"
+
+- name: Install kubernetes python module with pip
+  ansible.builtin.pip:
+    executable: pip3
+    name: kubernetes
+    version: 22.6.0
+
+- name: Install docker python module with pip
+  ansible.builtin.pip:
+    executable: pip3
+    name: docker
+
+- name: Install open-vm-tools if virtual machine
+  ansible.builtin.package:
+    name: open-vm-tools
+    state: present
+  when: ansible_virtualization_role == "guest"
+
+- name: Ensure ntpd is not installed
+  ansible.builtin.package:
+    state: absent
+    name: ntp
+
+- name: Ensure chronyd is running
+  ansible.builtin.systemd:
+    name: chronyd
+    enabled: yes
+    state: started
+
+- name: Remove swapfile from /etc/fstab
+  ansible.posix.mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  with_items:
+    - swap
+    - none
+
+- name: Disable swap
+  ansible.builtin.command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Install longhorn requirements
+  ansible.builtin.dnf:
+    name:
+      - iscsi-initiator-utils
+      - nfs-utils
+    state: present
+
+- name: Enable iscsi-initiator
+  ansible.builtin.systemd:
+    name: iscsid.service
+    enabled: yes
+    state: started
+
+- name: Create /home/longhorn/
+  ansible.builtin.file:
+    state: directory
+    path: /home/longhorn
+
+- name: add /usr/local/bin as path in root user
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    line: "PATH=$PATH:/usr/local/bin"
+    insertafter: EOF
+    state: present

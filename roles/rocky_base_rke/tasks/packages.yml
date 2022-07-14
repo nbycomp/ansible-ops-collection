@@ -1,0 +1,28 @@
+- name: Install common packages
+  ansible.builtin.package:
+    name:
+      - bash-completion
+      - bridge-utils
+      - chrony
+      - curl
+      - diffutils
+      - dmidecode
+      - dstat
+      - git
+      - htop
+      - hwloc
+      - iperf3
+      - jq
+      - kernel-modules-extra
+      - lshw
+      - ncdu
+      - net-tools
+      - nmap
+      - pciutils
+      - perl
+      - tcpdump
+      - tmux
+      - traceroute
+      - usbutils
+      - vim
+    state: present

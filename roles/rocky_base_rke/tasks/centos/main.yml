@@ -1,0 +1,5 @@
+- name: Include tasks to install CentOS packages
+  ansible.builtin.include_tasks: centos/packages.yml
+
+- name: Include tasks to setup CentOS firewall
+  ansible.builtin.include_tasks: centos/firewall.yml

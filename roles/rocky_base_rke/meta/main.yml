@@ -1,0 +1,10 @@
+galaxy_info:
+  author: nbycomp
+  description: >
+    This role setups a baseline set of packages, firewall config and network configuration to rocky OS to prepare for RKE
+  company: nbycomp
+  min_ansible_version: 2.9
+  platforms:
+    - name: CentOS
+      versions:
+        - 8

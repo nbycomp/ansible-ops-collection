@@ -1,0 +1,32 @@
+- name: Install CentOS packages
+  ansible.builtin.package:
+    name:
+      - bind-utils
+      - epel-release
+      - NetworkManager
+      - nfs-utils
+      - nm-connection-editor.x86_64
+      - python39
+      - python39-pip
+    state: present
+
+- name: Update kernel to latest version
+  ansible.builtin.package:
+    name: kernel
+    state: latest
+  register: kernel_updated
+
+- name: Update ca-certificates
+  ansible.builtin.package:
+    name: ca-certificates
+    state: latest
+
+- name: Update nss
+  ansible.builtin.package:
+    name: nss
+    state: latest
+
+- name: Reboot the node after kernel upgrade; will wait for 20 minutes
+  ansible.builtin.reboot:
+    reboot_timeout: 1200
+  when: kernel_updated.changed

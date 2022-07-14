@@ -1,0 +1,15 @@
+---
+driver:
+  name: vagrant
+  provider:
+    name: virtualbox
+platforms:
+  - name: molecule-base-rocky8
+    box: generic/rocky8
+    box_version: 4.0.4
+    memory: 2048
+    cpus: 2
+provisioner:
+  name: ansible
+verifier:
+  name: ansible

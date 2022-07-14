@@ -1,0 +1,4 @@
+---
+# defaults file for base
+rocky_base_rke_hostname:
+rocky_base_rke_kernel_module__load_file: "/etc/modules-load.d/nearbyone.conf"
