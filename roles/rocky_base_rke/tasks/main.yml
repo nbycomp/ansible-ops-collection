@@ -21,6 +21,12 @@
     name: cloud-init
     state: absent
 
+- name: Configure proxy
+  ansible.builtin.template:
+    src: proxy.sh.j2
+    dest: /etc/profile.d/proxy.sh
+  when: rocky_base_rke_proxy
+
 - name: Include tasks to setup centos
   ansible.builtin.include_tasks: centos/main.yml
 
@@ -59,11 +65,46 @@
     src: daemon.json
     dest: /etc/docker/daemon.json
 
+- name: Set proxy for docker
+  block:
+    - name: Create ~/.docker directory
+      ansible.builtin.file:
+        state: directory
+        path: "/root/.docker"
+        owner: "root"
+        group: "root"
+
+    - name: Configure docker proxy for root
+      ansible.builtin.template:
+        src: config.json.j2
+        dest: /root/.docker/config.json
+
+    - name: Create directory /etc/systemd/system/docker.service.d
+      ansible.builtin.file:
+        state: directory
+        path: "/etc/systemd/system/docker.service.d"
+
+    - name: Configure proxy in docker daemon env
+      ansible.builtin.template:
+        src: "templates/http-proxy.conf"
+        dest: "/etc/systemd/system/docker.service.d"
+      register: docker
+
+  when: rocky_base_rke_proxy
+
 - name: Start and enable Docker service
   ansible.builtin.service:
     name: docker
     state: started
     enabled: yes
+
+- name: restart docker
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    daemon_reload: yes
+    state: restarted
+  when: docker.changed
 
 - name: Set default python to 3.9
   community.general.alternatives:
@@ -127,10 +168,10 @@
     enabled: yes
     state: started
 
-- name: Create /home/longhorn/
+- name: Create {{ rocky_base_rke_longhorn_data }}
   ansible.builtin.file:
     state: directory
-    path: /home/longhorn
+    path: "{{ rocky_base_rke_longhorn_data }}"
 
 - name: add /usr/local/bin as path in root user
   ansible.builtin.lineinfile:
